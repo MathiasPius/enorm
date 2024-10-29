@@ -1,25 +1,17 @@
 use erm::prelude::*;
-use sqlx::{Database, Executor, Sqlite};
-
-#[derive(Component, Debug)]
-struct Counter(i64);
+use sqlx::{Database, Sqlite, TypeInfo};
 
 #[derive(Debug)]
 enum LightSwitch {
-    On { field_a: i64, counter: Counter },
-    Off { field_b: i64, counter: Counter },
+    On { field_a: i64 },
+    Off { field_b: i64 },
 }
 
 impl Deserializeable<Sqlite> for LightSwitch {
     fn cte() -> Box<dyn CommonTableExpression> {
-        Box::new(Merge {
-            tables: vec![
-                Box::new(Extract {
-                    table: "LightSwitch",
-                    columns: &["field_a", "field_b"],
-                }),
-                Counter::cte(),
-            ],
+        Box::new(Extract {
+            table: "LightSwitch",
+            columns: &["tag", "field_a", "field_b"],
         })
     }
 
@@ -30,18 +22,15 @@ impl Deserializeable<Sqlite> for LightSwitch {
         let field_a = row.try_get::<Option<i64>>()?;
         let field_b = row.try_get::<Option<i64>>()?;
 
-        let counter = <Counter as Deserializeable<Sqlite>>::deserialize(row)?;
-
-        Ok(match &tag {
-            "On" => LightSwitch::On {
+        match tag.as_str() {
+            "On" => Ok(LightSwitch::On {
                 field_a: field_a.unwrap(),
-                counter,
-            },
-            "Off" => LightSwitch::Off {
+            }),
+            "Off" => Ok(LightSwitch::Off {
                 field_b: field_b.unwrap(),
-                counter,
-            },
-        })
+            }),
+            _ => Err(sqlx::Error::RowNotFound),
+        }
     }
 }
 
@@ -75,15 +64,6 @@ impl Serializable<Sqlite> for LightSwitch {
         query.query(<Self as Component<::sqlx::Sqlite>>::INSERT, move |query| {
             <Self as Serializable<::sqlx::Sqlite>>::serialize(self, query)
         });
-
-        match self {
-            LightSwitch::On { counter, .. } => {
-                <Counter as Serializable<Sqlite>>::insert(counter, query);
-            }
-            LightSwitch::Off { counter, .. } => {
-                <Counter as Serializable<Sqlite>>::insert(counter, query);
-            }
-        }
     }
 
     fn update<'query, EntityId>(
@@ -99,7 +79,8 @@ impl Serializable<Sqlite> for LightSwitch {
 }
 
 impl Component<Sqlite> for LightSwitch {
-    const INSERT: &'static str = "";
+    const INSERT: &'static str =
+        "insert into LightSwitch(entity, tag, field_a, field_b) values(?, ?, ?, ?);";
 
     const UPDATE: &'static str = "";
 
@@ -121,14 +102,15 @@ impl Component<Sqlite> for LightSwitch {
     where
         EntityId: sqlx::Type<Sqlite>,
     {
-        use sqlx::TypeInfo;
         async move {
-            let sql = format!("create table if not exists LightSwitch(entity {} primary key, field_a integer null, field_b integer null);", <EntityId as sqlx::Type::<Sqlite>>::type_info().name());
-
-            sqlx::query(&sql).execute(pool).await
+            let sql = format!("create table if not exists LightSwitch(entity {} primary key, tag text not null, field_a integer null, field_b integer null);", <EntityId as sqlx::Type::<Sqlite>>::type_info().name());
+            let query = sqlx::query(&sql);
+            query.execute(pool).await
         }
     }
 }
+
+impl Archetype<Sqlite> for LightSwitch {}
 
 #[tokio::main]
 async fn main() {
@@ -136,6 +118,11 @@ async fn main() {
     let backend: SqliteBackend<i64> = SqliteBackend::in_memory().await;
 
     // This creates the component tables where data will be persisted.
-    backend.register::<Counter>().await.unwrap();
     backend.register::<LightSwitch>().await.unwrap();
+
+    backend.insert(&1, &LightSwitch::On { field_a: 10 }).await;
+
+    let switch: LightSwitch = backend.get(&1).await.unwrap();
+
+    println!("{switch:#?}");
 }

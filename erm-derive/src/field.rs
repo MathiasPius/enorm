@@ -4,6 +4,7 @@ use syn::spanned::Spanned;
 use syn::Token;
 use syn::{parse::Parse, Type};
 
+#[derive(Clone)]
 pub enum Field {
     Numbered {
         ident: TokenStream,
@@ -17,6 +18,79 @@ pub enum Field {
         intermediate_type: Option<Type>,
         column_name: String,
     },
+}
+
+impl std::hash::Hash for Field {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+        match self {
+            Field::Numbered {
+                ident,
+                typename,
+                intermediate_type,
+                column_name,
+            }
+            | Field::Named {
+                ident,
+                typename,
+                intermediate_type,
+                column_name,
+            } => {
+                ident.to_string().hash(state);
+                typename.hash(state);
+                intermediate_type.hash(state);
+                column_name.hash(state);
+            }
+        }
+    }
+}
+
+impl Eq for Field {}
+
+impl PartialEq for Field {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::Numbered {
+                    ident: l_ident,
+                    typename: l_typename,
+                    intermediate_type: l_intermediate_type,
+                    column_name: l_column_name,
+                },
+                Self::Numbered {
+                    ident: r_ident,
+                    typename: r_typename,
+                    intermediate_type: r_intermediate_type,
+                    column_name: r_column_name,
+                },
+            ) => {
+                l_ident.to_string() == r_ident.to_string()
+                    && l_typename == r_typename
+                    && l_intermediate_type == r_intermediate_type
+                    && l_column_name == r_column_name
+            }
+            (
+                Self::Named {
+                    ident: l_ident,
+                    typename: l_typename,
+                    intermediate_type: l_intermediate_type,
+                    column_name: l_column_name,
+                },
+                Self::Named {
+                    ident: r_ident,
+                    typename: r_typename,
+                    intermediate_type: r_intermediate_type,
+                    column_name: r_column_name,
+                },
+            ) => {
+                l_ident.to_string() == r_ident.to_string()
+                    && l_typename == r_typename
+                    && l_intermediate_type == r_intermediate_type
+                    && l_column_name == r_column_name
+            }
+            _ => false,
+        }
+    }
 }
 
 impl Field {
