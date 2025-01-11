@@ -5,6 +5,7 @@ use sqlx::{Pool, Sqlite};
 
 use crate::archetype::Archetype;
 use crate::condition::All;
+use crate::cte::Single;
 use crate::prelude::{Component, Deserializeable, Serializable};
 use crate::row::Entity;
 use crate::tables::Removable;
@@ -74,8 +75,13 @@ where
         T: Deserializeable<Sqlite> + Unpin + Send + 'static,
     {
         async move {
-            let sql =
-                crate::cte::serialize(<T as Deserializeable<Sqlite>>::cte().as_ref()).unwrap();
+            let sql = crate::cte::serialize(&Single {
+                inner: <T as Deserializeable<Sqlite>>::cte(),
+                entity,
+            })
+            .unwrap();
+
+            println!("{sql}");
 
             let result: Entity<EntityId, T> = sqlx::query_as(&sql)
                 .bind(entity)

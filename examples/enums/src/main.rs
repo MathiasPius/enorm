@@ -32,7 +32,7 @@ impl Deserializeable<Sqlite> for LightSwitch {
 
         let counter = <Counter as Deserializeable<Sqlite>>::deserialize(row)?;
 
-        Ok(match &tag {
+        Ok(match tag.as_str() {
             "On" => LightSwitch::On {
                 field_a: field_a.unwrap(),
                 counter,
@@ -41,6 +41,7 @@ impl Deserializeable<Sqlite> for LightSwitch {
                 field_b: field_b.unwrap(),
                 counter,
             },
+            _ => panic!("Unknown variant"),
         })
     }
 }

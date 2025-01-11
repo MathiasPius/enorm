@@ -6,6 +6,7 @@ use crate::{component::placeholders, field::Field};
 
 use super::{ComponentAttribute, ComponentAttributeList};
 
+#[derive(Debug)]
 pub struct StructComponent {
     pub typename: Ident,
     pub table_name: String,
@@ -281,12 +282,8 @@ impl StructComponent {
             }
         }
     }
-}
 
-impl Parse for StructComponent {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let derive = DeriveInput::parse(input)?;
-
+    pub fn parse(derive: DeriveInput) -> syn::Result<Self> {
         let Data::Struct(data) = derive.data else {
             panic!("Component can only be derived for struct types");
         };

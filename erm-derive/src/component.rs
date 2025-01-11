@@ -1,33 +1,32 @@
 use proc_macro2::{Ident, Literal, Punct, TokenStream};
 use quote::{quote, TokenStreamExt as _};
-use syn::{parse::Parse, Token};
+use r#enum::EnumComponent;
+use syn::{parse::Parse, DeriveInput, Token};
 
 mod r#enum;
 mod r#struct;
 pub use r#struct::*;
 
-use crate::{field::Field, implement_for, reflect::reflect_component};
+use crate::{implement_for, reflect::reflect_component};
 
+#[derive(Debug)]
 pub enum Component {
     Struct(StructComponent),
+    Enum(EnumComponent),
 }
 
 impl Component {
     pub fn typename(&self) -> &Ident {
         match self {
             Component::Struct(struct_component) => &struct_component.typename,
+            Component::Enum(enum_component) => &enum_component.typename,
         }
     }
 
     pub fn table_name(&self) -> &str {
         match self {
             Component::Struct(struct_component) => &struct_component.table_name,
-        }
-    }
-
-    pub fn fields(&self) -> &Vec<Field> {
-        match self {
-            Component::Struct(struct_component) => &struct_component.fields,
+            Component::Enum(enum_component) => &enum_component.table_name,
         }
     }
 
@@ -44,19 +43,35 @@ impl Component {
                 Component::Struct(struct_component) => {
                     struct_component.implementation(&sqlx, &database, placeholder_char)
                 }
+                Component::Enum(enum_component) => {
+                    enum_component.implementation(&sqlx, &database, placeholder_char)
+                }
             }
         };
 
         let mut implementations = implement_for(implementation);
 
-        implementations.append_all(reflect_component(&self));
+        match self {
+            Component::Struct(struct_component) => {
+                implementations.append_all(reflect_component(&struct_component));
+            }
+            Component::Enum(_) => (),
+        }
         implementations.into()
     }
 }
 
 impl Parse for Component {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        Ok(Component::Struct(StructComponent::parse(input)?))
+        let derive = DeriveInput::parse(input)?;
+
+        match &derive.data {
+            syn::Data::Struct(_) => Ok(Component::Struct(StructComponent::parse(derive)?)),
+            syn::Data::Enum(_) => Ok(Component::Enum(EnumComponent::parse(derive)?)),
+            syn::Data::Union(_) => {
+                panic!("Component can only be implemented for structs or enums")
+            }
+        }
     }
 }
 

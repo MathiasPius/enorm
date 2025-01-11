@@ -2,17 +2,19 @@ use std::collections::HashSet;
 
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{parse::Parse, spanned::Spanned, Data, DeriveInput};
+use syn::{spanned::Spanned, Data, DeriveInput};
 
 use crate::{component::placeholders, field::Field};
 
 use super::{ComponentAttribute, ComponentAttributeList};
 
+#[derive(Debug)]
 pub struct Variant {
-    name: String,
+    name: Ident,
     fields: Vec<Field>,
 }
 
+#[derive(Debug)]
 pub struct EnumComponent {
     pub typename: Ident,
     pub table_name: String,
@@ -69,8 +71,6 @@ impl EnumComponent {
             .iter()
             .flat_map(|variant| &variant.fields)
             .cloned()
-            .collect::<HashSet<Field>>()
-            .into_iter()
             .collect()
     }
 
@@ -83,12 +83,12 @@ impl EnumComponent {
             .map(|field| format!(", {}", field.column_name()))
             .collect();
 
-        column_names.insert(0, ", erm_tag".to_string());
+        column_names.insert(0, "erm_tag".to_string());
 
         let placeholders = placeholders(placeholder_char, column_names.len() + 1);
 
         let insert = format!(
-            "insert into {table}(entity{column_names}) values({placeholders});",
+            "insert into {table}(entity, {column_names}) values({placeholders});",
             placeholders = placeholders.join(", "),
             column_names = column_names.join("")
         );
@@ -102,7 +102,7 @@ impl EnumComponent {
 
             format!(
                 "update {table} set {field_updates} where entity = {placeholder_char}1",
-                field_updates = field_updates.join(", ")
+                field_updates = field_updates.join("")
             )
         };
 
@@ -122,7 +122,7 @@ impl EnumComponent {
             .fields()
             .iter()
             .map(Field::column_name)
-            .map(|column| format!(",\n  {column} {{}} not null"))
+            .map(|column| format!(",\n  {column} {{}} null"))
             .collect::<Vec<_>>();
 
         columns.insert(0, "\n,  erm_tag text not null".to_string());
@@ -225,66 +225,147 @@ impl EnumComponent {
     }
 
     fn field_serializer(&self, sqlx: &TokenStream, database: &TokenStream) -> TokenStream {
-        let binds = self.fields().into_iter().map(|field| field.serialize());
+        let binds = self.variants.iter().map(|variant| {
+            let enum_type = &self.typename;
+            let variant_name = &variant.name;
+
+            let field_names = variant.fields.iter().map(Field::field_name);
+
+            let binds = self.fields().into_iter().map(|field| {
+                let typename = field.typename();
+                let intermediate = field.intermediate();
+                let name = field.field_name();
+
+                if variant.fields.iter().any(|variant_specific_field| {
+                    variant_specific_field.column_name() == field.column_name()
+                }) {
+                    if let Some(intermediate) = intermediate {
+                       quote! {
+                            let query = query.bind(<&#typename as Into<#intermediate>>::into(#name));
+                        }
+                    } else {
+                        quote! {
+                            let query = query.bind(#name);
+                        }
+                    }
+                } else {
+                    if let Some(intermediate) = intermediate {
+                        quote! {
+                            let query = query.bind(Option::<#intermediate>::None);
+                        }
+                    } else {
+                        quote! {
+                            let query = query.bind(Option::<#typename>::None);
+                        }
+                    }
+                }
+            });
+
+            let stringified_variant_name = variant_name.to_string();
+
+            quote! {
+                #enum_type::#variant_name { #(#field_names,)* } => {
+                    let query = query.bind(#stringified_variant_name);
+                    #(#binds)*
+                    query
+                }
+            }
+        });
 
         quote! {
             fn serialize<'q>(
                 &'q self,
                 query: #sqlx::query::Query<'q, #database, <#database as #sqlx::Database>::Arguments<'q>>,
             ) -> #sqlx::query::Query<'q, #database, <#database as #sqlx::Database>::Arguments<'q>> {
-                #(#binds)*
-
-                query
+                match self {
+                    #(#binds)*
+                }
             }
         }
     }
 
     fn field_deserializer(&self, sqlx: &TokenStream, database: &TokenStream) -> TokenStream {
-        let component_name = &self.typename;
-        let deserialized_fields = self.fields().into_iter().map(|field| field.deserialize());
-
-        let columns = self.fields().into_iter().map(|field| match field {
-            Field::Numbered { ident, .. } => {
-                let ident = format!("column{}", ident.to_string());
-                quote! {
-                    #ident
-                }
-            }
-            Field::Named { ident, .. } => {
-                let ident = ident.to_string();
-                quote! {
-                    #ident
-                }
-            }
-        });
-
-        let assignments = self.fields().into_iter().map(|field| match field {
-            Field::Numbered { ident, .. } => {
+        let deserialized_fields = self.fields().into_iter().map(|field| match field {
+            Field::Numbered {
+                ident,
+                typename,
+                intermediate_type,
+                ..
+            } => {
+                let stringified_ident = ident.to_string();
                 let ident = Ident::new(&format!("self_{ident}"), ident.span());
 
-                quote! {
-                    #ident?
+                if let Some(intermediate) = &intermediate_type {
+                    quote! {
+                        let #ident: Result<Option<#typename>, _> = row.try_get::<Option<#intermediate>>().map(|field| <Option<#typename> as From<Option<#intermediate>>>::from(field)).ok_or(#sqlx::Error::ColumnNotFound(#stringified_ident.to_string()));
+                    }
+                } else {
+                    quote! {
+                        let #ident = row.try_get::<Option<#typename>>().ok_or(#sqlx::Error::ColumnNotFound(#stringified_ident.to_string()));
+                    }
                 }
             }
-            Field::Named { ident, .. } => quote! {
-                #ident: #ident?
-            },
+            Field::Named {
+                ident,
+                typename,
+                intermediate_type,
+                ..
+            } => {
+                let stringified_ident = ident.to_string();
+                if let Some(intermediate) = &intermediate_type {
+                    quote! {
+                        let #ident: Result<Option<#typename>, _> = row.try_get::<Option<#intermediate>>().map(|field| <Option<#typename> as From<Option<#intermediate>>>::from(field))?.ok_or(#sqlx::Error::ColumnNotFound(#stringified_ident.to_string()));
+                    }
+                } else {
+                    quote! {
+                        let #ident = row.try_get::<Option<#typename>>()?.ok_or(#sqlx::Error::ColumnNotFound(#stringified_ident.to_string()));
+                    }
+                }
+            }
+        }
+    );
+
+        let columns = [quote! { "erm_tag" }]
+            .into_iter()
+            .chain(self.fields().into_iter().map(|field| match field {
+                Field::Numbered { ident, .. } => {
+                    let ident = format!("column{}", ident.to_string());
+                    quote! {
+                        #ident
+                    }
+                }
+                Field::Named { ident, .. } => {
+                    let ident = ident.to_string();
+                    quote! {
+                        #ident
+                    }
+                }
+            }));
+
+        let variants = self.variants.iter().map(|variant| {
+            let tag_name = variant.name.to_string();
+            let variant_name = &variant.name;
+            let enum_type = &self.typename;
+
+            let variant_fields = variant.fields.iter().map(|field| {
+                let ident = field.ident();
+                quote! {
+                    #ident: #ident?
+                }
+            });
+
+            quote! {
+                #tag_name => #enum_type::#variant_name {
+                    #(#variant_fields),*
+                }
+            }
         });
 
-        let constructor = match self
-            .fields()
-            .first()
-            .map(|field| matches!(field, Field::Named { .. }))
-        {
-            None => quote! { #component_name },
-            Some(true) => quote! {
-                #component_name {
-                    #(#assignments,)*
-                }
-            },
-            Some(false) => quote! {
-                #component_name(#(#assignments,)*)
-            },
+        let constructor = quote! {
+            match erm_tag.as_str() {
+                #(#variants,)*
+                _ => panic!("Unknown variant!"),
+            }
         };
 
         let table_name = &self.table_name;
@@ -300,7 +381,10 @@ impl EnumComponent {
             }
 
             fn deserialize(row: &mut ::erm::row::OffsetRow<<#database as #sqlx::Database>::Row>) -> Result<Self, #sqlx::Error> {
-                #(#deserialized_fields;)*
+                let erm_tag = row.try_get::<String>()?;
+                #(
+                    #deserialized_fields
+                )*
 
                 let component = #constructor;
 
@@ -308,14 +392,10 @@ impl EnumComponent {
             }
         }
     }
-}
 
-impl Parse for EnumComponent {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let derive = DeriveInput::parse(input)?;
-
+    pub fn parse(derive: DeriveInput) -> syn::Result<Self> {
         let Data::Enum(data) = derive.data else {
-            panic!("Component can only be derived for enum types");
+            panic!("Component can only be derived for struct or enum types");
         };
 
         let attributes: Vec<_> = Result::<Vec<Vec<_>>, syn::Error>::from_iter(
@@ -335,7 +415,7 @@ impl Parse for EnumComponent {
 
         let variants = Result::from_iter(data.variants.into_iter().map(|variant| {
             Ok::<Variant, syn::Error>(Variant {
-                name: variant.ident.to_string(),
+                name: variant.ident,
                 fields: Result::from_iter(
                     variant
                         .fields

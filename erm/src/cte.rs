@@ -59,6 +59,45 @@ impl CommonTableExpression for Extract {
     }
 }
 
+pub struct Single<EntityId> {
+    pub inner: Box<dyn CommonTableExpression>,
+    pub entity: EntityId,
+}
+
+impl<EntityId> std::fmt::Debug for Single<EntityId> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result {
+        f.debug_struct("Single")
+            .field("inner", &self.inner)
+            .finish()
+    }
+}
+
+impl<EntityId> CommonTableExpression for Single<EntityId> {
+    fn table_name(&self, f: &mut dyn Write) -> Result {
+        self.inner.table_name(f)
+    }
+
+    fn columns(&self, f: &mut dyn Write) -> Result {
+        self.inner.columns(f)
+    }
+
+    fn serialize(&self, f: &mut dyn Write) -> Result {
+        self.inner.serialize(f)?;
+        write!(f, "\n    where\n      __cte_")?;
+        self.table_name(f)?;
+        writeln!(f, "__entity = ?1")?;
+        Ok(())
+    }
+
+    fn dependencies(&self) -> &[Box<dyn CommonTableExpression>] {
+        self.inner.dependencies()
+    }
+
+    fn optional(&self) -> bool {
+        true
+    }
+}
+
 #[derive(Debug)]
 pub struct Optional {
     pub inner: Box<dyn CommonTableExpression>,

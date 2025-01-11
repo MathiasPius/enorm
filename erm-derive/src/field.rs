@@ -4,7 +4,7 @@ use syn::spanned::Spanned;
 use syn::Token;
 use syn::{parse::Parse, Type};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Field {
     Numbered {
         ident: TokenStream,
