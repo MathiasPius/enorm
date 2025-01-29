@@ -1,10 +1,7 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 
-use crate::{
-    component::{Component, StructComponent},
-    field::Field,
-};
+use crate::{component::StructComponent, field::Field};
 
 pub fn reflect_component(component: &StructComponent) -> TokenStream {
     let component_name = &component.typename;

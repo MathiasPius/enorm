@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::{spanned::Spanned, Data, DeriveInput};
@@ -83,7 +81,7 @@ impl EnumComponent {
             .map(|field| format!(", {}", field.column_name()))
             .collect();
 
-        column_names.insert(0, "erm_tag".to_string());
+        column_names.insert(0, "__erm_tag".to_string());
 
         let placeholders = placeholders(placeholder_char, column_names.len() + 1);
 
@@ -125,7 +123,7 @@ impl EnumComponent {
             .map(|column| format!(",\n  {column} {{}} null"))
             .collect::<Vec<_>>();
 
-        columns.insert(0, "\n,  erm_tag text not null".to_string());
+        columns.insert(0, "\n,  __erm_tag text not null".to_string());
 
         let format_str = format!(
             "create table if not exists {table}(\n  entity {{}} primary key{columns}\n);",
@@ -325,7 +323,7 @@ impl EnumComponent {
         }
     );
 
-        let columns = [quote! { "erm_tag" }]
+        let columns = [quote! { "__erm_tag" }]
             .into_iter()
             .chain(self.fields().into_iter().map(|field| match field {
                 Field::Numbered { ident, .. } => {

@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{parse::Parse, spanned::Spanned, Data, DeriveInput};
+use syn::{spanned::Spanned, Data, DeriveInput};
 
 use crate::{component::placeholders, field::Field};
 

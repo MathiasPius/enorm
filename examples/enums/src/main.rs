@@ -1,5 +1,5 @@
 use erm::prelude::*;
-use sqlx::{Database, Executor, Sqlite};
+use sqlx::{Database, Sqlite};
 
 #[derive(Component, Debug)]
 struct Counter(i64);
