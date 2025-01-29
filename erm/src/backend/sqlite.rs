@@ -81,8 +81,6 @@ where
             })
             .unwrap();
 
-            println!("{sql}");
-
             let result: Entity<EntityId, T> = sqlx::query_as(&sql)
                 .bind(entity)
                 .fetch_one(&self.pool)
