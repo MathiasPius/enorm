@@ -139,14 +139,14 @@ impl Field {
 
         if let Some(intermediate) = self.intermediate() {
             quote! {
-                ::erm::component::ColumnDefinition::<#database> {
+                ::enorm::component::ColumnDefinition::<#database> {
                     name: #name,
                     type_info: <#intermediate as #sqlx::Type<#database>>::type_info(),
                 }
             }
         } else {
             quote! {
-                ::erm::component::ColumnDefinition::<#database> {
+                ::enorm::component::ColumnDefinition::<#database> {
                     name: #name,
                     type_info: <#typename as #sqlx::Type<#database>>::type_info(),
                 }
@@ -237,11 +237,11 @@ impl Field {
 
         if let Some(intermediate) = self.intermediate() {
             quote! {
-                pub #name: ::erm::reflect::ReflectedColumn<#intermediate>
+                pub #name: ::enorm::reflect::ReflectedColumn<#intermediate>
             }
         } else {
             quote! {
-                pub #name: ::erm::reflect::ReflectedColumn<#typename>
+                pub #name: ::enorm::reflect::ReflectedColumn<#typename>
             }
         }
     }

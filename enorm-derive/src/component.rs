@@ -33,7 +33,7 @@ impl Component {
     pub fn derive(&self) -> TokenStream {
         let implementation = |database: Ident, placeholder_char: char| {
             #[cfg(feature = "bundled")]
-            let sqlx = quote! {::erm::sqlx};
+            let sqlx = quote! {::enorm::sqlx};
             #[cfg(not(feature = "bundled"))]
             let sqlx = quote! {::sqlx};
 

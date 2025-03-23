@@ -1,4 +1,4 @@
-use erm::prelude::*;
+use enorm::prelude::*;
 use sqlx::{Database, Sqlite, TypeInfo};
 
 #[derive(Debug)]
@@ -16,7 +16,7 @@ impl Deserializeable<Sqlite> for LightSwitch {
     }
 
     fn deserialize(
-        row: &mut erm::row::OffsetRow<<Sqlite as Database>::Row>,
+        row: &mut enorm::row::OffsetRow<<Sqlite as Database>::Row>,
     ) -> Result<Self, sqlx::Error> {
         let tag = row.try_get::<String>()?;
         let field_a = row.try_get::<Option<i64>>()?;
@@ -57,7 +57,7 @@ impl Serializable<Sqlite> for LightSwitch {
 
     fn insert<'query, EntityId>(
         &'query self,
-        query: &mut erm::entity::EntityPrefixedQuery<'query, Sqlite, EntityId>,
+        query: &mut enorm::entity::EntityPrefixedQuery<'query, Sqlite, EntityId>,
     ) where
         EntityId: sqlx::Encode<'query, Sqlite> + sqlx::Type<Sqlite> + Clone + 'query,
     {
@@ -68,7 +68,7 @@ impl Serializable<Sqlite> for LightSwitch {
 
     fn update<'query, EntityId>(
         &'query self,
-        query: &mut erm::entity::EntityPrefixedQuery<'query, Sqlite, EntityId>,
+        query: &mut enorm::entity::EntityPrefixedQuery<'query, Sqlite, EntityId>,
     ) where
         EntityId: sqlx::Encode<'query, Sqlite> + sqlx::Type<Sqlite> + Clone + 'query,
     {

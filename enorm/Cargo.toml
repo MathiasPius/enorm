@@ -1,27 +1,27 @@
 [package]
-name = "erm"
+name = "enorm"
 version = "0.1.0"
 edition = "2021"
 resolver = "2"
 
 [features]
-derive = ["dep:erm-derive"]
-bundled = ["erm-derive/bundled"]
+derive = ["dep:enorm-derive"]
+bundled = ["enorm-derive/bundled"]
 
-sqlite = ["sqlx/sqlite", "erm-derive/sqlite"]
-postgres = ["sqlx/postgres", "erm-derive/postgres"]
-mysql = ["sqlx/mysql", "erm-derive/mysql"]
+sqlite = ["sqlx/sqlite", "enorm-derive/sqlite"]
+postgres = ["sqlx/postgres", "enorm-derive/postgres"]
+mysql = ["sqlx/mysql", "enorm-derive/mysql"]
 uuid = ["dep:uuid", "sqlx/uuid"]
 
 [dependencies]
 sqlx.workspace = true
-erm-derive = { workspace = true, optional = true }
+enorm-derive = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 async-trait.workspace = true
 async-stream.workspace = true
 futures.workspace = true
 
 [dev-dependencies]
-erm = { path = ".", features = ["uuid"] }
+enorm = { path = ".", features = ["uuid"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 sqlx = { workspace = true, features = ["runtime-tokio", "sqlite"] }

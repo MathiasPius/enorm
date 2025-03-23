@@ -7,7 +7,7 @@
 //! ```rust
 //! # #[tokio::main]
 //! # async fn example1() {
-//! use erm::prelude::*;
+//! use enorm::prelude::*;
 //!
 //! // Construct an in-memory SqliteBackend using Uuids for entity IDs.
 //! let backend = SqliteBackend::<uuid::Uuid>::in_memory().await;
@@ -92,7 +92,7 @@ pub use ::sqlx;
 
 pub mod prelude {
     #[cfg(feature = "derive")]
-    pub use erm_derive::*;
+    pub use enorm_derive::*;
 
     pub use crate::archetype::Archetype;
     pub use crate::backend::*;

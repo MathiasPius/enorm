@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
-members = ["erm", "erm-derive", "examples/*"]
+members = ["enorm", "enorm-derive", "examples/*"]
 
 [workspace.dependencies]
-erm = { path = "erm" }
-erm-derive = { path = "erm-derive" }
+enorm = { path = "enorm" }
+enorm-derive = { path = "enorm-derive" }
 
 sqlx = { version = "0.8.2" }
 tokio = { version = "1.40.0" }

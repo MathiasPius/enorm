@@ -1,4 +1,4 @@
-use erm::prelude::*;
+use enorm::prelude::*;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 
 #[derive(Debug, Component)]

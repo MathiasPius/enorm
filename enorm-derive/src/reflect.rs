@@ -20,7 +20,7 @@ pub fn reflect_component(component: &StructComponent) -> TokenStream {
 
         quote! {
             #[allow(unused)]
-            #name: ::erm::reflect::ReflectedColumn::new(#stringified)
+            #name: ::enorm::reflect::ReflectedColumn::new(#stringified)
         }
     });
 
@@ -39,7 +39,7 @@ pub fn reflect_component(component: &StructComponent) -> TokenStream {
             }
         }
 
-        impl ::erm::reflect::Reflect for #component_name {
+        impl ::enorm::reflect::Reflect for #component_name {
             type ReflectionType = #reflection_name;
             const FIELDS: Self::ReflectionType = #reflection_name::new();
         }

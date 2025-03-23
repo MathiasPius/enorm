@@ -23,7 +23,7 @@ pub fn derive_archetype(stream: proc_macro::TokenStream) -> proc_macro::TokenStr
 
     let implementation = |database: Ident, _: char| {
         #[cfg(feature = "bundled")]
-        let sqlx = quote! {::erm::sqlx};
+        let sqlx = quote! {::enorm::sqlx};
         #[cfg(not(feature = "bundled"))]
         let sqlx = quote! {::sqlx};
         let database = quote! {#sqlx::#database};

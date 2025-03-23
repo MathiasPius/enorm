@@ -18,15 +18,15 @@ impl Archetype {
         let deserializer = self.component_deserializer(sqlx, database);
 
         quote! {
-            impl ::erm::archetype::Archetype<#database> for #archetype_name
+            impl ::enorm::archetype::Archetype<#database> for #archetype_name
             {
             }
 
-            impl ::erm::serialization::Deserializeable<#database> for #archetype_name {
+            impl ::enorm::serialization::Deserializeable<#database> for #archetype_name {
                 #deserializer
             }
 
-            impl ::erm::tables::Removable<#database> for #archetype_name {
+            impl ::enorm::tables::Removable<#database> for #archetype_name {
                 #remove
             }
         }
@@ -37,12 +37,12 @@ impl Archetype {
             let typename = field.typename();
 
             quote! {
-                <#typename as ::erm::tables::Removable<#database>>::remove(query);
+                <#typename as ::enorm::tables::Removable<#database>>::remove(query);
             }
         });
 
         quote! {
-            fn remove<'query, EntityId>(query: &mut ::erm::entity::EntityPrefixedQuery<'query, #database, EntityId>)
+            fn remove<'query, EntityId>(query: &mut ::enorm::entity::EntityPrefixedQuery<'query, #database, EntityId>)
             where
                 EntityId: #sqlx::Encode<'query, #database> + #sqlx::Type<#database> + Clone + 'query
             {
@@ -58,7 +58,7 @@ impl Archetype {
             let typename = field.typename();
 
             quote! {
-                <#typename as ::erm::serialization::Deserializeable<#database>>::cte()
+                <#typename as ::enorm::serialization::Deserializeable<#database>>::cte()
             }
         });
 
@@ -67,7 +67,7 @@ impl Archetype {
             let typename = field.typename();
 
             quote! {
-                let #name = <#typename as ::erm::serialization::Deserializeable<#database>>::deserialize(row);
+                let #name = <#typename as ::enorm::serialization::Deserializeable<#database>>::deserialize(row);
             }
         });
 
@@ -80,15 +80,15 @@ impl Archetype {
         });
 
         quote! {
-            fn cte() -> Box<dyn ::erm::cte::CommonTableExpression> {
-                Box::new(::erm::cte::Merge {
+            fn cte() -> Box<dyn ::enorm::cte::CommonTableExpression> {
+                Box::new(::enorm::cte::Merge {
                     tables: vec![
                         #(#sub_expressions,)*
                     ]
                 })
             }
 
-            fn deserialize(row: &mut ::erm::row::OffsetRow<<#database as #sqlx::Database>::Row>) -> Result<Self, #sqlx::Error> {
+            fn deserialize(row: &mut ::enorm::row::OffsetRow<<#database as #sqlx::Database>::Row>) -> Result<Self, #sqlx::Error> {
                 #(#components)*
 
                 let archetype = #archetype_name {

@@ -39,26 +39,26 @@ impl EnumComponent {
         let deserialize = self.field_deserializer(sqlx, database);
 
         quote! {
-            impl ::erm::component::Component<#database> for #component_name {
+            impl ::enorm::component::Component<#database> for #component_name {
                 #statements
                 #table
                 #columns
                 #table_creator
             }
 
-            impl ::erm::archetype::Archetype<#database> for #component_name {}
+            impl ::enorm::archetype::Archetype<#database> for #component_name {}
 
-            impl ::erm::serialization::Serializable<#database> for #component_name {
+            impl ::enorm::serialization::Serializable<#database> for #component_name {
                 #serialize
                 #insert
                 #update
             }
 
-            impl ::erm::serialization::Deserializeable<#database> for #component_name {
+            impl ::enorm::serialization::Deserializeable<#database> for #component_name {
                 #deserialize
             }
 
-            impl ::erm::tables::Removable<#database> for #component_name {
+            impl ::enorm::tables::Removable<#database> for #component_name {
                 #remove
             }
         }
@@ -179,7 +179,7 @@ impl EnumComponent {
             .map(|field| field.column_definition(sqlx, database));
 
         quote! {
-            fn columns() -> Vec<::erm::component::ColumnDefinition::<#database>> {
+            fn columns() -> Vec<::enorm::component::ColumnDefinition::<#database>> {
                 vec![#(#columns,)*]
             }
         }
@@ -187,7 +187,7 @@ impl EnumComponent {
 
     fn remove(&self, sqlx: &TokenStream, database: &TokenStream) -> TokenStream {
         quote! {
-            fn remove<'query, EntityId>(query: &mut ::erm::entity::EntityPrefixedQuery<'query, #database, EntityId>)
+            fn remove<'query, EntityId>(query: &mut ::enorm::entity::EntityPrefixedQuery<'query, #database, EntityId>)
             where
                 EntityId: #sqlx::Encode<'query, #database> + #sqlx::Type<#database> + Clone + 'query,
             {
@@ -198,7 +198,7 @@ impl EnumComponent {
 
     fn insert(&self, sqlx: &TokenStream, database: &TokenStream) -> TokenStream {
         quote! {
-            fn insert<'query, EntityId>(&'query self, query: &mut ::erm::entity::EntityPrefixedQuery<'query, #database, EntityId>)
+            fn insert<'query, EntityId>(&'query self, query: &mut ::enorm::entity::EntityPrefixedQuery<'query, #database, EntityId>)
             where
                 EntityId: #sqlx::Encode<'query, #database> + #sqlx::Type<#database> + Clone + 'query
             {
@@ -211,7 +211,7 @@ impl EnumComponent {
 
     fn update(&self, database: &TokenStream) -> TokenStream {
         quote! {
-            fn update<'query, EntityId>(&'query self, query: &mut ::erm::entity::EntityPrefixedQuery<'query, #database, EntityId>)
+            fn update<'query, EntityId>(&'query self, query: &mut ::enorm::entity::EntityPrefixedQuery<'query, #database, EntityId>)
             where
                 EntityId: sqlx::Encode<'query, #database> + sqlx::Type<#database> + Clone + 'query
             {
@@ -369,8 +369,8 @@ impl EnumComponent {
         let table_name = &self.table_name;
 
         quote! {
-            fn cte() -> Box<dyn ::erm::cte::CommonTableExpression> {
-                Box::new(::erm::cte::Extract {
+            fn cte() -> Box<dyn ::enorm::cte::CommonTableExpression> {
+                Box::new(::enorm::cte::Extract {
                     table: #table_name,
                     columns: &[
                         #(#columns,)*
@@ -378,7 +378,7 @@ impl EnumComponent {
                 })
             }
 
-            fn deserialize(row: &mut ::erm::row::OffsetRow<<#database as #sqlx::Database>::Row>) -> Result<Self, #sqlx::Error> {
+            fn deserialize(row: &mut ::enorm::row::OffsetRow<<#database as #sqlx::Database>::Row>) -> Result<Self, #sqlx::Error> {
                 let erm_tag = row.try_get::<String>()?;
                 #(
                     #deserialized_fields
