@@ -8,7 +8,7 @@ use component::Component;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, TokenStreamExt};
 
-#[proc_macro_derive(Component, attributes(erm))]
+#[proc_macro_derive(Component, attributes(enorm))]
 pub fn derive_component(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let stream = TokenStream::from(stream);
     let component: Component = syn::parse2(stream).unwrap();
@@ -16,7 +16,7 @@ pub fn derive_component(stream: proc_macro::TokenStream) -> proc_macro::TokenStr
     component.derive().into()
 }
 
-#[proc_macro_derive(Archetype, attributes(erm))]
+#[proc_macro_derive(Archetype, attributes(enorm))]
 pub fn derive_archetype(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let stream = TokenStream::from(stream);
     let archetype: Archetype = syn::parse2(stream).unwrap();

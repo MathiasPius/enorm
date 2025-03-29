@@ -81,7 +81,7 @@ impl EnumComponent {
             .map(|field| format!(", {}", field.column_name()))
             .collect();
 
-        column_names.insert(0, "__erm_tag".to_string());
+        column_names.insert(0, "__enorm_tag".to_string());
 
         let placeholders = placeholders(placeholder_char, column_names.len() + 1);
 
@@ -123,7 +123,7 @@ impl EnumComponent {
             .map(|column| format!(",\n  {column} {{}} null"))
             .collect::<Vec<_>>();
 
-        columns.insert(0, "\n,  __erm_tag text not null".to_string());
+        columns.insert(0, "\n,  __enorm_tag text not null".to_string());
 
         let format_str = format!(
             "create table if not exists {table}(\n  entity {{}} primary key{columns}\n);",
@@ -323,7 +323,7 @@ impl EnumComponent {
         }
     );
 
-        let columns = [quote! { "__erm_tag" }]
+        let columns = [quote! { "__enorm_tag" }]
             .into_iter()
             .chain(self.fields().into_iter().map(|field| match field {
                 Field::Numbered { ident, .. } => {
@@ -360,7 +360,7 @@ impl EnumComponent {
         });
 
         let constructor = quote! {
-            match erm_tag.as_str() {
+            match enorm_tag.as_str() {
                 #(#variants,)*
                 _ => panic!("Unknown variant!"),
             }
@@ -379,7 +379,7 @@ impl EnumComponent {
             }
 
             fn deserialize(row: &mut ::enorm::row::OffsetRow<<#database as #sqlx::Database>::Row>) -> Result<Self, #sqlx::Error> {
-                let erm_tag = row.try_get::<String>()?;
+                let enorm_tag = row.try_get::<String>()?;
                 #(
                     #deserialized_fields
                 )*
@@ -400,7 +400,7 @@ impl EnumComponent {
             derive
                 .attrs
                 .iter()
-                .filter(|attr| attr.meta.path().is_ident("erm"))
+                .filter(|attr| attr.meta.path().is_ident("enorm"))
                 .map(|attr| {
                     let list = attr.meta.require_list()?;
 

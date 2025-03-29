@@ -74,7 +74,7 @@
 //! # }
 //! ```
 //!
-//! See [github.com/MathiasPius/erm](https://github.com/MathiasPius/erm/tree/main/examples) for more examples.
+//! See [github.com/MathiasPius/enorm](https://github.com/MathiasPius/enorm/tree/main/examples) for more examples.
 
 pub mod archetype;
 pub mod backend;

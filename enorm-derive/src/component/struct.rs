@@ -292,7 +292,7 @@ impl StructComponent {
             derive
                 .attrs
                 .iter()
-                .filter(|attr| attr.meta.path().is_ident("erm"))
+                .filter(|attr| attr.meta.path().is_ident("enorm"))
                 .map(|attr| {
                     let list = attr.meta.require_list()?;
 
