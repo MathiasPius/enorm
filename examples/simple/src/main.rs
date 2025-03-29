@@ -1,10 +1,10 @@
 use enorm::prelude::*;
 use futures::TryStreamExt as _;
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, PartialEq, Eq)]
 pub struct Name(String);
 
-#[derive(Component, Debug, PartialEq)]
+#[derive(Component, Debug, PartialEq, Eq)]
 pub struct Age(i64);
 
 #[tokio::main]
@@ -31,7 +31,7 @@ async fn main() {
         .await;
 
     // Let's name an Archetype instead of just relying on a tuple.
-    #[derive(Archetype, Debug)]
+    #[derive(Archetype, Debug, PartialEq, Eq)]
     #[allow(unused)]
     struct Person {
         name: Name,
@@ -47,25 +47,19 @@ async fn main() {
         .await
         .unwrap();
 
-    println!("{people:#?}");
-    //  [
-    //     Person {
-    //         name: Name(
-    //             "Jimothy",
-    //         ),
-    //         age: Age(
-    //             10,
-    //         ),
-    //     },
-    //     Person {
-    //         name: Name(
-    //             "Andrea",
-    //         ),
-    //         age: Age(
-    //             32,
-    //         ),
-    //     },
-    // ]
+    assert_eq!(
+        people,
+        [
+            Person {
+                name: Name("Jimothy".to_string(),),
+                age: Age(10,),
+            },
+            Person {
+                name: Name("Andrea".to_string(),),
+                age: Age(32,),
+            },
+        ]
+    );
 
     backend.remove::<Person>(&jimothy).await;
 
@@ -78,11 +72,7 @@ async fn main() {
         .unwrap();
 
     // Check that only Andrea is left.
-    assert_eq!(remaining_names.len(), 1);
-    println!("{:#?}", remaining_names);
-    // Name(
-    //     "Andrea",
-    // )
+    assert_eq!(remaining_names, &[Name("Andrea".to_string())]);
 
     // Fetch Andrea's age
     assert_eq!(backend.get::<Age>(&andrea).await.unwrap(), Age(32));

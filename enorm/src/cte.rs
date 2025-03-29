@@ -83,7 +83,11 @@ impl<EntityId> CommonTableExpression for Single<EntityId> {
     }
 
     fn serialize(&self, f: &mut dyn Write) -> Result {
-        write!(f, "    select\n      *\n    from\n      __cte_")?;
+        write!(f, "    select\n      __cte_")?;
+        self.inner[0].table_name(f)?;
+        write!(f, "__entity")?;
+        self.columns(f)?;
+        write!(f, "\n    from\n      __cte_")?;
         self.inner[0].table_name(f)?;
         write!(f, "\n    where __cte_")?;
         self.inner[0].table_name(f)?;
@@ -133,7 +137,71 @@ pub struct Merge {
 
 impl CommonTableExpression for Merge {
     fn table_name(&self, f: &mut dyn Write) -> Result {
+        let mut tables = self.tables.iter();
+        let first = tables.next().unwrap();
+
         write!(f, "merge_")?;
+        first.table_name(f)?;
+
+        for table in tables {
+            write!(f, "_")?;
+            table.table_name(f)?;
+        }
+
+        Ok(())
+    }
+
+    fn columns(&self, f: &mut dyn Write) -> Result {
+        for inner in &self.tables {
+            inner.columns(f)?;
+        }
+
+        Ok(())
+    }
+
+    fn serialize(&self, f: &mut dyn Write) -> Result {
+        let mut tables = self.tables.iter();
+        let first = tables.next().unwrap();
+
+        write!(f, "{}", "    select\n      __cte_")?;
+        first.table_name(f)?;
+        write!(f, "__entity as __cte_")?;
+        self.table_name(f)?;
+        write!(f, "__entity")?;
+        self.columns(f)?;
+        write!(f, "{}", "\n    from\n      __cte_")?;
+        first.table_name(f)?;
+
+        for table in tables {
+            if table.optional() {
+                write!(f, "\n    left join\n      __cte_")?;
+            } else {
+                write!(f, "\n    inner join\n      __cte_")?;
+            }
+            table.table_name(f)?;
+            write!(f, "\n    on\n      __cte_")?;
+            self.table_name(f)?;
+            write!(f, "__entity = __cte_")?;
+            table.table_name(f)?;
+            write!(f, "__entity")?;
+        }
+
+        Ok(())
+    }
+
+    fn dependencies(&self) -> &[Box<dyn CommonTableExpression>] {
+        &self.tables
+    }
+}
+
+#[derive(Debug)]
+pub struct Union {
+    pub tables: Vec<Box<dyn CommonTableExpression>>,
+}
+
+impl CommonTableExpression for Union {
+    fn table_name(&self, f: &mut dyn Write) -> Result {
+        write!(f, "union_")?;
         let mut tables = self.tables.iter();
         let first = tables.next().unwrap();
         first.table_name(f)?;
@@ -154,19 +222,17 @@ impl CommonTableExpression for Merge {
     }
 
     fn serialize(&self, f: &mut dyn Write) -> Result {
-        write!(
-            f,
-            "    select\n      *\n    from\n      (select ?1 as __cte_"
-        )?;
+        write!(f, "    select\n      ")?;
+        write!(f, "__cte_")?;
         self.table_name(f)?;
-        write!(f, "__entity)\n    as __cte_root")?;
+        write!(f, "__entity")?;
+        self.columns(f)?;
+        write!(f, "\n    from\n      (select ?1 as __cte_")?;
+        self.table_name(f)?;
+        write!(f, "__entity)\n    as\n      __cte_root")?;
 
         for table in self.tables.iter() {
-            if table.optional() {
-                write!(f, "\n    left join\n      __cte_")?;
-            } else {
-                write!(f, "\n    inner join\n      __cte_")?;
-            }
+            write!(f, "\n    left join\n      __cte_")?;
             table.table_name(f)?;
             write!(f, "\n    on\n      __cte_")?;
             table.table_name(f)?;

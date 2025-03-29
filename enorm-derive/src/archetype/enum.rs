@@ -105,7 +105,7 @@ impl EnumArchetype {
 
         quote! {
             fn cte() -> Box<dyn ::enorm::cte::CommonTableExpression> {
-                Box::new(::enorm::cte::Merge {
+                Box::new(::enorm::cte::Union {
                     tables: vec![
                         #(#sub_expressions,)*
                     ]
@@ -120,16 +120,6 @@ impl EnumArchetype {
                     _ => unimplemented!(),
                 }
             }
-
-            // fn deserialize(row: &mut ::enorm::row::OffsetRow<<#database as #sqlx::Database>::Row>) -> Result<Self, #sqlx::Error> {
-            //     #(#components)*
-
-            //     let archetype = #archetype_name {
-            //         #(#assignments,)*
-            //     };
-
-            //     Ok(archetype)
-            // }
         }
     }
 }

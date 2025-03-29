@@ -1,10 +1,10 @@
 use enorm::prelude::*;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, PartialEq, Eq)]
 struct Counter(i64);
 
-#[derive(Debug, Archetype)]
+#[derive(Debug, Archetype, PartialEq, Eq)]
 enum LightSwitch {
     On { counter: Counter },
     Off,
@@ -30,11 +30,20 @@ async fn main() {
     backend.register::<Counter>().await.unwrap();
 
     backend.insert(&1, &Counter(10)).await;
-    //backend.insert(&2, &LightSwitch::Off).await;
 
     let switch1: LightSwitch = backend.get(&1).await.unwrap();
-    let switch2: LightSwitch = backend.get(&2).await.unwrap();
-
     println!("{switch1:#?}");
+
+    assert_eq!(
+        switch1,
+        LightSwitch::On {
+            counter: Counter(10)
+        }
+    );
+
+    let switch2: LightSwitch = backend.get(&2).await.unwrap();
     println!("{switch2:#?}");
+
+    // Non-existent: Default to empty state (if present)
+    assert_eq!(switch2, LightSwitch::Off);
 }

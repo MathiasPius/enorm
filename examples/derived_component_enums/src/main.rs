@@ -1,7 +1,7 @@
 use enorm::prelude::*;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, PartialEq, Eq)]
 enum LightSwitch {
     On { field_a: i64 },
     Off { field_b: i64, field_c: u32 },
@@ -28,9 +28,32 @@ async fn main() {
     backend.register::<LightSwitch>().await.unwrap();
 
     backend.insert(&1, &LightSwitch::On { field_a: 10 }).await;
-    backend.insert(&2, &LightSwitch::Whatever).await;
+    backend
+        .insert(
+            &2,
+            &LightSwitch::Off {
+                field_b: 20,
+                field_c: 30,
+            },
+        )
+        .await;
+    backend.insert(&3, &LightSwitch::Whatever).await;
 
-    let switch: LightSwitch = backend.get(&1).await.unwrap();
+    assert_eq!(
+        backend.get::<LightSwitch>(&1).await.unwrap(),
+        LightSwitch::On { field_a: 10 }
+    );
 
-    println!("{switch:#?}");
+    assert_eq!(
+        backend.get::<LightSwitch>(&2).await.unwrap(),
+        LightSwitch::Off {
+            field_b: 20,
+            field_c: 30
+        }
+    );
+
+    assert_eq!(
+        backend.get::<LightSwitch>(&3).await.unwrap(),
+        LightSwitch::Whatever
+    );
 }
