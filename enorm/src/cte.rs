@@ -60,7 +60,7 @@ impl CommonTableExpression for Extract {
 }
 
 pub struct Single<EntityId> {
-    pub inner: Box<dyn CommonTableExpression>,
+    pub inner: [Box<dyn CommonTableExpression>; 1],
     pub entity: EntityId,
 }
 
@@ -74,23 +74,24 @@ impl<EntityId> std::fmt::Debug for Single<EntityId> {
 
 impl<EntityId> CommonTableExpression for Single<EntityId> {
     fn table_name(&self, f: &mut dyn Write) -> Result {
-        self.inner.table_name(f)
+        write!(f, "single_")?;
+        self.inner[0].table_name(f)
     }
 
     fn columns(&self, f: &mut dyn Write) -> Result {
-        self.inner.columns(f)
+        self.inner[0].columns(f)
     }
 
     fn serialize(&self, f: &mut dyn Write) -> Result {
-        self.inner.serialize(f)?;
-        write!(f, "\n    where\n      __cte_")?;
-        self.table_name(f)?;
-        writeln!(f, "__entity = ?1")?;
-        Ok(())
+        write!(f, "    select\n      *\n    from\n      __cte_")?;
+        self.inner[0].table_name(f)?;
+        write!(f, "\n    where __cte_")?;
+        self.inner[0].table_name(f)?;
+        write!(f, "__entity = ?1")
     }
 
     fn dependencies(&self) -> &[Box<dyn CommonTableExpression>] {
-        self.inner.dependencies()
+        self.inner.as_slice()
     }
 
     fn optional(&self) -> bool {
@@ -132,12 +133,10 @@ pub struct Merge {
 
 impl CommonTableExpression for Merge {
     fn table_name(&self, f: &mut dyn Write) -> Result {
+        write!(f, "merge_")?;
         let mut tables = self.tables.iter();
         let first = tables.next().unwrap();
-
-        write!(f, "merge_")?;
         first.table_name(f)?;
-
         for table in tables {
             write!(f, "_")?;
             table.table_name(f)?;
@@ -155,19 +154,14 @@ impl CommonTableExpression for Merge {
     }
 
     fn serialize(&self, f: &mut dyn Write) -> Result {
-        let mut tables = self.tables.iter();
-        let first = tables.next().unwrap();
-
-        write!(f, "{}", "    select\n      __cte_")?;
-        first.table_name(f)?;
-        write!(f, "__entity as __cte_")?;
+        write!(
+            f,
+            "    select\n      *\n    from\n      (select ?1 as __cte_"
+        )?;
         self.table_name(f)?;
-        write!(f, "__entity")?;
-        self.columns(f)?;
-        write!(f, "{}", "\n    from\n      __cte_")?;
-        first.table_name(f)?;
+        write!(f, "__entity)\n    as __cte_root")?;
 
-        for table in tables {
+        for table in self.tables.iter() {
             if table.optional() {
                 write!(f, "\n    left join\n      __cte_")?;
             } else {
@@ -175,9 +169,9 @@ impl CommonTableExpression for Merge {
             }
             table.table_name(f)?;
             write!(f, "\n    on\n      __cte_")?;
-            self.table_name(f)?;
-            write!(f, "__entity = __cte_")?;
             table.table_name(f)?;
+            write!(f, "__entity = __cte_")?;
+            self.table_name(f)?;
             write!(f, "__entity")?;
         }
 

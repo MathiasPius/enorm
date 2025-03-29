@@ -45,7 +45,9 @@ impl EnumArchetype {
             let typename = field.typename();
 
             quote! {
-                <Option<#typename> as ::enorm::serialization::Deserializeable<#database>>::cte()
+                Box::new(::enorm::cte::Optional {
+                    inner: <Option<#typename> as ::enorm::serialization::Deserializeable<#database>>::cte()
+                })
             }
         });
 
@@ -54,7 +56,7 @@ impl EnumArchetype {
             let typename = field.typename();
 
             quote! {
-                let #name = <Option<#typename> as ::enorm::serialization::Deserializeable<#database>>::deserialize(row)?;
+                let #name = <Option<#typename> as ::enorm::serialization::Deserializeable<#database>>::deserialize(row).ok().flatten();
             }
         });
 

@@ -14,6 +14,10 @@ impl TryFrom<syn::Variant> for Variant {
     fn try_from(variant: syn::Variant) -> Result<Self, Self::Error> {
         let ident = variant.ident;
 
+        if variant.discriminant.is_some() {
+            unimplemented!("can't derive Archetype for enums with discrimants.");
+        }
+
         let fields = Result::<Vec<Field>, _>::from_iter(
             variant.fields.into_iter().enumerate().map(Field::try_from),
         )?;

@@ -76,7 +76,7 @@ where
     {
         async move {
             let sql = crate::cte::serialize(&Single {
-                inner: <T as Deserializeable<Sqlite>>::cte(),
+                inner: [<T as Deserializeable<Sqlite>>::cte()],
                 entity,
             })
             .unwrap();

@@ -26,7 +26,7 @@ impl Archetype {
         match self {
             Archetype::Struct(struct_archetype) => struct_archetype.remove(sqlx, database),
             Archetype::Enum(_) => {
-                quote! { compiler_error("Can't delete enum Archetypes")}
+                quote! { compile_error("Can't delete enum Archetypes")}
             }
         }
     }
