@@ -1,0 +1,10 @@
+[package]
+name = "derived_component_enums"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+enorm = { workspace = true, features = ["sqlite", "derive"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+sqlx = { workspace = true, features = ["runtime-tokio"] }
+futures = { workspace = true }

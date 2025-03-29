@@ -134,6 +134,8 @@ impl CommonTableExpression for Merge {
     fn table_name(&self, f: &mut dyn Write) -> Result {
         let mut tables = self.tables.iter();
         let first = tables.next().unwrap();
+
+        write!(f, "merge_")?;
         first.table_name(f)?;
 
         for table in tables {

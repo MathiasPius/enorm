@@ -1,5 +1,5 @@
 [package]
-name = "derived_enums"
+name = "archetype_enums"
 version = "0.1.0"
 edition = "2021"
 

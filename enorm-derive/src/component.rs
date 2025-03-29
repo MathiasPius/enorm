@@ -16,20 +16,6 @@ pub enum Component {
 }
 
 impl Component {
-    pub fn typename(&self) -> &Ident {
-        match self {
-            Component::Struct(struct_component) => &struct_component.typename,
-            Component::Enum(enum_component) => &enum_component.typename,
-        }
-    }
-
-    pub fn table_name(&self) -> &str {
-        match self {
-            Component::Struct(struct_component) => &struct_component.table_name,
-            Component::Enum(enum_component) => &enum_component.table_name,
-        }
-    }
-
     pub fn derive(&self) -> TokenStream {
         let implementation = |database: Ident, placeholder_char: char| {
             #[cfg(feature = "bundled")]

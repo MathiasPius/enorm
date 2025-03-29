@@ -2,6 +2,7 @@ mod archetype;
 mod component;
 mod field;
 mod reflect;
+mod variant;
 
 use archetype::Archetype;
 use component::Component;
@@ -26,6 +27,7 @@ pub fn derive_archetype(stream: proc_macro::TokenStream) -> proc_macro::TokenStr
         let sqlx = quote! {::enorm::sqlx};
         #[cfg(not(feature = "bundled"))]
         let sqlx = quote! {::sqlx};
+
         let database = quote! {#sqlx::#database};
 
         archetype.implementation(&sqlx, &database)

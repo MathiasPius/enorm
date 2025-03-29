@@ -24,6 +24,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
+name = "archetype_enums"
+version = "0.1.0"
+dependencies = [
+ "enorm",
+ "futures",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "async-stream"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -239,7 +249,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "derived_enums"
+name = "derived_archetype_enums"
+version = "0.1.0"
+dependencies = [
+ "enorm",
+ "futures",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
+name = "derived_component_enums"
 version = "0.1.0"
 dependencies = [
  "enorm",
@@ -307,16 +327,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "enums"
-version = "0.1.0"
-dependencies = [
- "enorm",
- "futures",
- "sqlx",
- "tokio",
 ]
 
 [[package]]
